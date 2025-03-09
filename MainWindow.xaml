@@ -3,12 +3,16 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:BalloonGame"
+        xmlns:local="clr-namespace:BalloonGame" xmlns:HelixToolkit="http://helix-toolkit.org/wpf"
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800"
         >
     <Grid>
         <Image Name="MainCanvas" Stretch="Uniform" Width="{Binding ActualWidth, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}" Height="{Binding ActualHeight, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}" />
         <TextBlock Name="MessageText" Text="Waiting for connection to Kinect..." />
+        <HelixToolkit:HelixViewport3D x:Name="ModelViewport">
+            <HelixToolkit:SunLight />
+            <ModelVisual3D x:Name="ModelVisual" />
+        </HelixToolkit:HelixViewport3D>
     </Grid>
 </Window>

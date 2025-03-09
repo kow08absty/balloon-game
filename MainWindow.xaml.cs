@@ -17,6 +17,7 @@ using System.Runtime.InteropServices;
 using System.Drawing;
 
 using TrackerFrame = Microsoft.Azure.Kinect.BodyTracking.Frame;
+using System.Reflection.Metadata;
 
 namespace BalloonGame {
     /// <summary>
@@ -67,7 +68,9 @@ namespace BalloonGame {
         /// <summary>
         /// リフレッシュレート [フレーム/秒]
         /// </summary>
-        const int ANIMATIOM_REFRESH_RATE = 60;
+        const int ANIMATION_REFRESH_RATE = 60;
+
+        private HelixToolkit.Wpf.ModelImporter _modelImporter = new HelixToolkit.Wpf.ModelImporter();
 
         /// <summary>
         /// 描画ターゲットの大きさ
@@ -77,6 +80,7 @@ namespace BalloonGame {
         private static readonly Hand mouse = new Hand(-HAND_SIZE, -HAND_SIZE, HAND_SIZE);
         private static readonly List<Hand> hands = new List<Hand>();
         private static readonly List<Balloon> balloons = new List<Balloon>();
+        private static readonly List<Balloon3D> paperBalloons = new List<Balloon3D>();
 
         public MainWindow() {
             InitializeComponent();
@@ -88,16 +92,41 @@ namespace BalloonGame {
 
             StartAnimation();
 
+            ModelViewport.Orthographic = true;
+            ModelViewport.IsMoveEnabled = false;
+            ModelViewport.IsPanEnabled = false;
+            ModelViewport.IsRotationEnabled = false;
+            ModelViewport.IsZoomEnabled = false;
+            ModelViewport.ShowViewCube = false;
+            {
+                var group = new Transform3DGroup();
+                var translate = new TranslateTransform3D(0, 0, 0);
+                var rotate = new RotateTransform3D(new AxisAngleRotation3D(Axis.Z, 180), translate.OffsetX, translate.OffsetY, translate.OffsetZ);
+                group.Children.Add(translate);
+                group.Children.Add(rotate);
+                ModelViewport.Camera.Transform = group;
+            }
+
+            var paperBalloon = new Balloon3D(_modelImporter);
+            ModelViewport.Children.Add(paperBalloon);
+            paperBalloons.Add(paperBalloon);
+
+            var hand = new Hand3D(_modelImporter);
+            ModelViewport.Children.Add(hand);
+
             // Kinect 接続用タスク
             Task.Run(() => {
-                InitKinect();
-                _kinectCaptureTask = StartKinectCapture();
-                Dispatcher.Invoke(new Action(() => {
-                    MessageText.Visibility = Visibility.Hidden;
-                }));
-                MouseMove -= Window_MouseMove;
-                mouse.X = -100;
-                mouse.Y = -100;
+                try {
+                    InitKinect();
+                    _kinectCaptureTask = StartKinectCapture();
+                    Dispatcher.Invoke(new Action(() => {
+                        MessageText.Visibility = Visibility.Hidden;
+                    }));
+                    MouseMove -= Window_MouseMove;
+                    mouse.X = -100;
+                    mouse.Y = -100;
+                } catch (Exception) {
+                }
             });
         }
 
@@ -189,18 +218,18 @@ namespace BalloonGame {
         /// </summary>
         /// <returns>アニメーションタスク</returns>
         private Task StartAnimation() {
-            int animationTickMillis = (int)(1000f / ANIMATIOM_REFRESH_RATE);
+            int animationTickMillis = (int)(1000f / ANIMATION_REFRESH_RATE);
 
             return Task.Run(() => {
                 while (_loop) {
                     long now = TimeUtils.CurrentTimeMillis();
-                    if (now - _lastBalloonSpawnTime > SPAWN_TIME_INTERVAL && Random.Shared.NextDouble() > 0.85) {
-                        _lastBalloonSpawnTime = now;
-                        double randomX = Random.Shared.NextDouble() * canvasSize.Width;
-                        double maxX = canvasSize.Width - BALLOON_SIZE;
-                        double spawnX = Math.Min(maxX, Math.Max(BALLOON_SIZE, randomX));
-                        balloons.Add(new Balloon(spawnX, 0, BALLOON_SIZE));
-                    }
+                    //if (now - _lastBalloonSpawnTime > SPAWN_TIME_INTERVAL && Random.Shared.NextDouble() > 0.85) {
+                    //    _lastBalloonSpawnTime = now;
+                    //    double randomX = Random.Shared.NextDouble() * canvasSize.Width;
+                    //    double maxX = canvasSize.Width - BALLOON_SIZE;
+                    //    double spawnX = Math.Min(maxX, Math.Max(BALLOON_SIZE, randomX));
+                    //    balloons.Add(new Balloon(spawnX, 0, BALLOON_SIZE));
+                    //}
 
                     balloons.FindAll(balloon => !balloon.Collided).ForEach(balloon => {
                         hands.ForEach(hand => {
@@ -221,6 +250,10 @@ namespace BalloonGame {
                         if (canvasSize.Height == 0 || canvasSize.Width == 0) {
                             UpdateCanvasSize();
                             return;
+                        }
+
+                        foreach (var balloon in paperBalloons) {
+                            balloon.Tick(now - _lastAnimationTime);
                         }
 
                         var renderTarget = new RenderTargetBitmap((int)canvasSize.Width, (int)canvasSize.Height, 96, 96, PixelFormats.Pbgra32);
