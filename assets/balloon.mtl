@@ -7,7 +7,7 @@ Ka 1.000000 1.000000 1.000000
 Ks 0.000000 0.000000 0.000000
 Ke 0.000000 0.000000 0.000000
 Ni 1.450000
-d 0.953368
 illum 1
 map_Kd Sphere.png
-map_Bump -bm 1.000000 Sphere-normal.png
+map_d Sphere.png
+map_Bump -bm 2.000000 Sphere-normal.png

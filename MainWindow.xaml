@@ -8,10 +8,9 @@
         Title="MainWindow" Height="450" Width="800"
         >
     <Grid>
-        <Image Name="MainCanvas" Stretch="Uniform" Width="{Binding ActualWidth, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}" Height="{Binding ActualHeight, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}" />
         <TextBlock Name="MessageText" Text="Waiting for connection to Kinect..." />
         <HelixToolkit:HelixViewport3D x:Name="ModelViewport">
-            <HelixToolkit:SunLight />
+            <HelixToolkit:SunLight x:Name="DirectionalLight" />
             <ModelVisual3D x:Name="ModelVisual" />
         </HelixToolkit:HelixViewport3D>
     </Grid>

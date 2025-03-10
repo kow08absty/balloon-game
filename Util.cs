@@ -29,4 +29,10 @@ namespace BalloonGame {
         public static Vector3D Y = new Vector3D(0, 1, 0);
         public static Vector3D Z = new Vector3D(0, 0, 1);
     }
+
+    public static class Vector3DExt {
+        public static Vector3D Invert(this Vector3D target) {
+            return target * -1;
+        }
+    }
 }

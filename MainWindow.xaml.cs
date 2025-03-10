@@ -75,44 +75,40 @@ namespace BalloonGame {
         /// <summary>
         /// 描画ターゲットの大きさ
         /// </summary>
-        private System.Windows.Size canvasSize = new System.Windows.Size(1920, 1080);
+        private System.Windows.Size orthoSize = new System.Windows.Size(30, 30);
 
         private static readonly Hand mouse = new Hand(-HAND_SIZE, -HAND_SIZE, HAND_SIZE);
-        private static readonly List<Hand> hands = new List<Hand>();
-        private static readonly List<Balloon> balloons = new List<Balloon>();
+        //private static readonly List<Hand> hands = new List<Hand>();
+        //private static readonly List<Balloon> balloons = new List<Balloon>();
         private static readonly List<Balloon3D> paperBalloons = new List<Balloon3D>();
+        private static readonly List<Hand3D> hand3D = new List<Hand3D>();
 
         public MainWindow() {
             InitializeComponent();
 
             Closing += Window_Closing;
-            SizeChanged += Window_SizeChanged;
-            Loaded += Window_Loaded;
             MouseMove += Window_MouseMove;
 
-            StartAnimation();
-
-            ModelViewport.Orthographic = true;
             ModelViewport.IsMoveEnabled = false;
             ModelViewport.IsPanEnabled = false;
             ModelViewport.IsRotationEnabled = false;
             ModelViewport.IsZoomEnabled = false;
             ModelViewport.ShowViewCube = false;
-            {
-                var group = new Transform3DGroup();
-                var translate = new TranslateTransform3D(0, 0, 0);
-                var rotate = new RotateTransform3D(new AxisAngleRotation3D(Axis.Z, 180), translate.OffsetX, translate.OffsetY, translate.OffsetZ);
-                group.Children.Add(translate);
-                group.Children.Add(rotate);
-                ModelViewport.Camera.Transform = group;
-            }
+            ModelViewport.Camera = new OrthographicCamera(new Point3D(0, 0, 0), Axis.Z, Axis.Y, orthoSize.Width);
 
-            var paperBalloon = new Balloon3D(_modelImporter);
+            DirectionalLight.Transform = new RotateTransform3D(new AxisAngleRotation3D(Axis.Y, 160));
+
+            var paperBalloon = new Balloon3D(_modelImporter) {
+                Y = 9,
+            };
             ModelViewport.Children.Add(paperBalloon);
             paperBalloons.Add(paperBalloon);
 
-            var hand = new Hand3D(_modelImporter);
+            var hand = new Hand3D(_modelImporter) {
+                Y = -7.5,
+            };
             ModelViewport.Children.Add(hand);
+            hand3D.Add(hand);
 
             // Kinect 接続用タスク
             Task.Run(() => {
@@ -128,6 +124,8 @@ namespace BalloonGame {
                 } catch (Exception) {
                 }
             });
+            
+            StartAnimation();
         }
 
         /// <summary>
@@ -180,9 +178,9 @@ namespace BalloonGame {
                             lock (this) {
                                 if (_trackingCount != frame.NumberOfBodies) {
                                     _trackingCount = frame.NumberOfBodies;
-                                    hands.Clear();
+                                    hand3D.Clear();
                                     for (int i = 0; i < _trackingCount << 1; ++i) {
-                                        hands.Add(new Hand(0, 0, HAND_SIZE));
+                                        hand3D.Add(new Hand3D(_modelImporter));
                                     }
                                 }
 
@@ -192,14 +190,14 @@ namespace BalloonGame {
 
                                     {
                                         var joint = skeleton.GetJoint(JointId.HandLeft);
-                                        hands[handIndex].X = MathHelper.Lerp(joint.Position.X / canvasSize.Width, canvasSize.Width * 0.5f, canvasSize.Width);
-                                        hands[handIndex].Y = MathHelper.Lerp(joint.Position.Y / canvasSize.Height, canvasSize.Height * 0.5f, canvasSize.Height);
+                                        hand3D[handIndex].X = MathHelper.Lerp(joint.Position.X / orthoSize.Width, orthoSize.Width * 0.5f, orthoSize.Width);
+                                        hand3D[handIndex].Y = MathHelper.Lerp(joint.Position.Y / orthoSize.Height, orthoSize.Height * 0.5f, orthoSize.Height);
                                     }
 
                                     {
                                         var joint = skeleton.GetJoint(JointId.HandRight);
-                                        hands[handIndex + 1].X = MathHelper.Lerp(joint.Position.X / canvasSize.Width, canvasSize.Width * 0.5f, canvasSize.Width);
-                                        hands[handIndex + 1].Y = MathHelper.Lerp(joint.Position.Y / canvasSize.Height, canvasSize.Height * 0.5f, canvasSize.Height);
+                                        hand3D[handIndex + 1].X = MathHelper.Lerp(joint.Position.X / orthoSize.Width, orthoSize.Width * 0.5f, orthoSize.Width);
+                                        hand3D[handIndex + 1].Y = MathHelper.Lerp(joint.Position.Y / orthoSize.Height, orthoSize.Height * 0.5f, orthoSize.Height);
                                     }
                                 }
                             }
@@ -231,60 +229,40 @@ namespace BalloonGame {
                     //    balloons.Add(new Balloon(spawnX, 0, BALLOON_SIZE));
                     //}
 
-                    balloons.FindAll(balloon => !balloon.Collided).ForEach(balloon => {
-                        hands.ForEach(hand => {
-                            balloon.Collided |= balloon.IsCollide(hand);
-                        });
-                        balloon.Collided |= balloon.IsCollide(mouse);
-                    });
-
-                    foreach (var balloon in balloons) {
-                        balloon.Update(now - _lastAnimationTime);
-                        if (balloon.Y > canvasSize.Height + balloon.Size || balloon.Y < -balloon.Size) {
-                            balloon.Dead = true;
-                        }
-                    }
-                    balloons.RemoveAll(b => b.Dead);
+                    //foreach (var balloon in balloons) {
+                    //    balloon.Update(now - _lastAnimationTime);
+                    //    if (balloon.Y > canvasSize.Height + balloon.Size || balloon.Y < -balloon.Size) {
+                    //        balloon.Dead = true;
+                    //    }
+                    //}
+                    //balloons.RemoveAll(b => b.Dead);
 
                     Dispatcher.Invoke(() => {
-                        if (canvasSize.Height == 0 || canvasSize.Width == 0) {
-                            UpdateCanvasSize();
-                            return;
+                        foreach (var balloon in paperBalloons) {
+                            foreach (var hand in hand3D) {
+                                if (balloon.IsColide(hand)) {
+                                    balloon.Velocity = 1.2;
+                                    balloon.RotationAngleRate = Random.Shared.NextDouble() * 20;
+                                    balloon.RotationAxis = new Vector3D(
+                                        Random.Shared.NextDouble(),
+                                        Random.Shared.NextDouble(),
+                                        Random.Shared.NextDouble()
+                                    );
+                                    balloon.RotationAxis.Normalize();
+                                }
+                            }
                         }
 
                         foreach (var balloon in paperBalloons) {
                             balloon.Tick(now - _lastAnimationTime);
                         }
 
-                        var renderTarget = new RenderTargetBitmap((int)canvasSize.Width, (int)canvasSize.Height, 96, 96, PixelFormats.Pbgra32);
-                        var visual = new DrawingVisual();
-
-                        lock (this) {
-                            using (var context = visual.RenderOpen()) {
-                                foreach (var ball in balloons) {
-                                    ball.Draw(context);
-                                }
-
-                                mouse.Draw(context);
-
-                                foreach (var hand in hands) {
-                                    hand.Draw(context);
-                                }
-                            }
-                        }
-
-                        renderTarget.Render(visual);
-                        MainCanvas.Source = renderTarget;
+                        paperBalloons.RemoveAll(b => b.Dead);
                     });
                     _lastAnimationTime = now;
                     Thread.Sleep(animationTickMillis);
                 }
             });
-        }
-
-        private void UpdateCanvasSize() {
-            canvasSize.Width = DesiredSize.Width;
-            canvasSize.Height = DesiredSize.Height;
         }
 
         private void Window_Closing(object? sender, System.ComponentModel.CancelEventArgs e) {
@@ -297,14 +275,6 @@ namespace BalloonGame {
             var point = e.GetPosition(this);
             mouse.X = point.X;
             mouse.Y = point.Y;
-        }
-
-        private void Window_SizeChanged(object sender, SizeChangedEventArgs e) {
-            UpdateCanvasSize();
-        }
-
-        private void Window_Loaded(object? sender, EventArgs e) {
-            UpdateCanvasSize();
         }
     }
 }
