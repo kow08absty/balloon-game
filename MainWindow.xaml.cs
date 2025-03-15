@@ -90,14 +90,17 @@ namespace BalloonGame {
 
             // Kinect 接続用タスク
             Task.Run(() => {
-                InitKinect();
-                _kinectCaptureTask = StartKinectCapture();
-                Dispatcher.Invoke(new Action(() => {
-                    MessageText.Visibility = Visibility.Hidden;
-                }));
-                MouseMove -= Window_MouseMove;
-                mouse.X = -100;
-                mouse.Y = -100;
+                try {
+                    InitKinect();
+                    _kinectCaptureTask = StartKinectCapture();
+                    Dispatcher.Invoke(new Action(() => {
+                        MessageText.Visibility = Visibility.Hidden;
+                    }));
+                    MouseMove -= Window_MouseMove;
+                    mouse.X = -100;
+                    mouse.Y = -100;
+                } catch (Exception) {
+                }
             });
         }
 

@@ -1,4 +1,6 @@
-﻿using System.Windows.Media;
+﻿using System.Net.Http.Headers;
+using System.Windows;
+using System.Windows.Media;
 
 namespace BalloonGame {
     /// <summary>
@@ -22,7 +24,10 @@ namespace BalloonGame {
         }
 
         public void Draw(DrawingContext context) {
-            Draw(context, Brushes.Navy);
+            Ellipse(context, Brushes.Navy);
+            double r = Size * 0.85;
+            Arc(context, new Pen(Brushes.White, 2), r, 281, 329);
+            Arc(context, new Pen(Brushes.White, 2), r, 337, 346);
         }
 
         /// <summary>

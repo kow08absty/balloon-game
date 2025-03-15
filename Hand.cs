@@ -6,7 +6,7 @@ namespace BalloonGame {
         }
 
         public void Draw(DrawingContext context) {
-            Draw(context, Brushes.Orange);
+            Ellipse(context, Brushes.Orange);
         }
     }
 }

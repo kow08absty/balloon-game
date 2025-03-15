@@ -13,6 +13,10 @@ namespace BalloonGame {
         public static double Lerp(double alpha, double start, double end) {
             return start + alpha * (end - start);
         }
+
+        public static double Radian(double degree) {
+            return Math.PI / 180.0 * degree;
+        }
     }
 
     public class TimeUtils {
