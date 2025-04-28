@@ -10,5 +10,6 @@
     <Grid>
         <Image Name="MainCanvas" Stretch="Uniform" Width="{Binding ActualWidth, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}" Height="{Binding ActualHeight, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}" />
         <TextBlock Name="MessageText" Text="Waiting for connection to Kinect..." />
+        <TextBlock Name="DeadCount" Text="[dead count]" HorizontalAlignment="Right" />
     </Grid>
 </Window>

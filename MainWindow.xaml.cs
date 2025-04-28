@@ -40,9 +40,9 @@ namespace BalloonGame {
         /// </summary>
         private uint _trackingCount = 0;
         /// <summary>
-        /// 最後に風船が出現した時間 [ミリ秒]
+        /// 風船が床に落ちた回数
         /// </summary>
-        private long _lastBalloonSpawnTime = 0;
+        private long _deadCount = 0;
         /// <summary>
         /// 最後にアニメーションを実行した時間 [ミリ秒]
         /// </summary>
@@ -60,10 +60,6 @@ namespace BalloonGame {
         /// 風船の大きさ
         /// </summary>
         const int BALLOON_SIZE = 40;
-        /// <summary>
-        /// 風船が出現する間隔 [ミリ秒]
-        /// </summary>
-        const int SPAWN_TIME_INTERVAL = 2000;
         /// <summary>
         /// リフレッシュレート [フレーム/秒]
         /// </summary>
@@ -197,34 +193,34 @@ namespace BalloonGame {
             return Task.Run(() => {
                 while (_loop) {
                     long now = TimeUtils.CurrentTimeMillis();
-                    if (now - _lastBalloonSpawnTime > SPAWN_TIME_INTERVAL && Random.Shared.NextDouble() > 0.85) {
-                        _lastBalloonSpawnTime = now;
-                        double randomX = Random.Shared.NextDouble() * canvasSize.Width;
-                        double maxX = canvasSize.Width - BALLOON_SIZE;
-                        double spawnX = Math.Min(maxX, Math.Max(BALLOON_SIZE, randomX));
-                        balloons.Add(new Balloon(spawnX, 0, BALLOON_SIZE));
-                    }
-
-                    balloons.FindAll(balloon => !balloon.Collided).ForEach(balloon => {
-                        hands.ForEach(hand => {
-                            balloon.Collided |= balloon.IsCollide(hand);
-                        });
-                        balloon.Collided |= balloon.IsCollide(mouse);
-                    });
 
                     foreach (var balloon in balloons) {
+                        hands.ForEach(hand => {
+                            if (balloon.IsCollide(hand)) {
+                                balloon.NotifyCollide();
+                            }
+                        });
+                        if (balloon.IsCollide(mouse)) {
+                            balloon.NotifyCollide();
+                        }
+
                         balloon.Update(now - _lastAnimationTime);
-                        if (balloon.Y > canvasSize.Height + balloon.Size || balloon.Y < -balloon.Size) {
+                        if (balloon.Y > canvasSize.Height + balloon.Size) {
                             balloon.Dead = true;
                         }
                     }
-                    balloons.RemoveAll(b => b.Dead);
+                    _deadCount += balloons.RemoveAll(b => b.Dead);
+                    if (balloons.Count == 0) {
+                        SpawnNewBalloon();
+                    }
 
                     Dispatcher.Invoke(() => {
                         if (canvasSize.Height == 0 || canvasSize.Width == 0) {
                             UpdateCanvasSize();
                             return;
                         }
+
+                        this.DeadCount.Text = String.Format("ボールが落ちた回数: {0}", _deadCount);
 
                         var renderTarget = new RenderTargetBitmap((int)canvasSize.Width, (int)canvasSize.Height, 96, 96, PixelFormats.Pbgra32);
                         var visual = new DrawingVisual();
@@ -250,6 +246,10 @@ namespace BalloonGame {
                     Thread.Sleep(animationTickMillis);
                 }
             });
+        }
+
+        private void SpawnNewBalloon(double x = 400, double y = 0) {
+            balloons.Add(new Balloon(x, y, BALLOON_SIZE));
         }
 
         private void UpdateCanvasSize() {
