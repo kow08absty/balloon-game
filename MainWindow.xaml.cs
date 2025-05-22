@@ -66,6 +66,12 @@ namespace BalloonGame {
         const int ANIMATIOM_REFRESH_RATE = 60;
 
         /// <summary>
+        /// Body Tracking で検出可能なおおよその解像度
+        /// </summary>
+        private static readonly System.Windows.Rect trackingSize = new System.Windows.Rect(-1024, -1024, 1024, 1024);
+        private static readonly System.Windows.Size normalizedTrackingSize = new System.Windows.Size(Math.Abs(trackingSize.Width - trackingSize.X), Math.Abs(trackingSize.Height - trackingSize.Y));
+
+        /// <summary>
         /// 描画ターゲットの大きさ
         /// </summary>
         private System.Windows.Size canvasSize = new System.Windows.Size(1920, 1080);
@@ -162,14 +168,14 @@ namespace BalloonGame {
 
                                     {
                                         var joint = skeleton.GetJoint(JointId.HandLeft);
-                                        hands[handIndex].X = MathHelper.Lerp(joint.Position.X / canvasSize.Width, canvasSize.Width * 0.5f, canvasSize.Width);
-                                        hands[handIndex].Y = MathHelper.Lerp(joint.Position.Y / canvasSize.Height, canvasSize.Height * 0.5f, canvasSize.Height);
+                                        hands[handIndex].X = MathHelper.Lerp((trackingSize.Width + joint.Position.X) / normalizedTrackingSize.Width, canvasSize.Width, 0);
+                                        hands[handIndex].Y = MathHelper.Lerp((trackingSize.Height + joint.Position.Y) / normalizedTrackingSize.Height, 0, canvasSize.Height);
                                     }
 
                                     {
                                         var joint = skeleton.GetJoint(JointId.HandRight);
-                                        hands[handIndex + 1].X = MathHelper.Lerp(joint.Position.X / canvasSize.Width, canvasSize.Width * 0.5f, canvasSize.Width);
-                                        hands[handIndex + 1].Y = MathHelper.Lerp(joint.Position.Y / canvasSize.Height, canvasSize.Height * 0.5f, canvasSize.Height);
+                                        hands[handIndex + 1].X = MathHelper.Lerp((trackingSize.Width + joint.Position.X) / normalizedTrackingSize.Width, canvasSize.Width, 0);
+                                        hands[handIndex + 1].Y = MathHelper.Lerp((trackingSize.Height + joint.Position.Y) / normalizedTrackingSize.Height, 0, canvasSize.Height);
                                     }
                                 }
                             }
@@ -221,6 +227,8 @@ namespace BalloonGame {
                         }
 
                         this.DeadCount.Text = String.Format("ボールが落ちた回数: {0}", _deadCount);
+
+                        this.Coordinate.Text = String.Join(", ", hands.Select(hand => String.Format("X: {0:#.###}, Y: {1:#.###}", hand.X, hand.Y)));
 
                         var renderTarget = new RenderTargetBitmap((int)canvasSize.Width, (int)canvasSize.Height, 96, 96, PixelFormats.Pbgra32);
                         var visual = new DrawingVisual();
