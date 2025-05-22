@@ -1,48 +1,34 @@
 ﻿using System.Windows;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace BalloonGame {
     /// <summary>
-    /// 円を表現する抽象クラス
+    /// 描画ユーティリティクラス
     /// </summary>
-    internal abstract class CircleBase {
-        private double x;
-        private double y;
-        private readonly int size;
+    internal abstract class DrawingUtil {
 
-        protected CircleBase(double x, double y, int size) {
-            this.x = x;
-            this.y = y;
-            this.size = size;
+
+        public static void DrawImage(DrawingContext drawingContext, double x, double y, BitmapImage target) {
+            Point halved = new Point(target.PixelWidth / 2, target.PixelHeight / 2);
+            drawingContext.DrawImage(target, new Rect(x - halved.X, y - halved.Y, target.PixelWidth, target.PixelHeight));
         }
-
-        public double X {
-            get { return x; }
-            set { x = value; }
-        }
-
-        public double Y {
-            get { return y; }
-            set { y = value; }
-        }
-
-        public int Size { get { return size; } }
 
         /// <summary>
         /// 渡された DrawingContext に Brush で円を描画
         /// </summary>
         /// <param name="context">描画コンテキスト</param>
         /// <param name="fillColor">描画色</param>
-        public void Ellipse(DrawingContext context, Brush fillColor) {
+        public static void Ellipse(DrawingContext context, double x, double y, double size, Brush fillColor) {
             context.DrawEllipse(fillColor, null, new Point(x, y), size, size);
         }
 
-        public void Arc(DrawingContext context, Pen pen, double r, double startDegrees, double endDegrees, SweepDirection direction = SweepDirection.Clockwise) {
+        public static void Arc(DrawingContext context, double x, double y, Pen pen, double r, double startDegrees, double endDegrees, SweepDirection direction = SweepDirection.Clockwise) {
             var arcPathGeo = ArcGeometry(new Point(x, y), r, startDegrees, endDegrees, direction);
             context.DrawGeometry(null, pen, arcPathGeo);
         }
 
-        protected PathGeometry ArcGeometry(Point center, double distance, double startDegrees, double stopDegrees, SweepDirection direction) {
+        protected static PathGeometry ArcGeometry(Point center, double distance, double startDegrees, double stopDegrees, SweepDirection direction) {
             Point stop = MakePoint(stopDegrees, center, distance);//終点座標
 
             //IsLargeの判定、
@@ -81,22 +67,6 @@ namespace BalloonGame {
             var x = center.X + cos * distance;
             var y = center.Y + sin * distance;
             return new Point(x, y);
-        }
-
-        /// <summary>
-        /// 渡された CircleBase に対してユークリッド距離で衝突判定
-        /// </summary>
-        /// <param name="other">ターゲット</param>
-        /// <returns>衝突したら true</returns>
-        public bool IsCollide(CircleBase other) {
-            if (other == this) {
-                return false;
-            }
-
-            double x_distance = Math.Abs(this.x - other.x);
-            double y_distance = Math.Abs(this.y - other.y);
-            double euclid_distance = Math.Sqrt(x_distance * x_distance + y_distance * y_distance);
-            return euclid_distance <= this.size + other.size;
         }
     }
 }

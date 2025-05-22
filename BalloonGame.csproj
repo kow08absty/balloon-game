@@ -15,4 +15,8 @@
     <PackageReference Include="Microsoft.Azure.Kinect.Sensor" Version="1.4.2" />
   </ItemGroup>
 
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="xcopy &quot;$(ProjectDir)assets&quot; &quot;$(ProjectDir)$(OutDir)assets&quot; /i /c /r /y" />
+  </Target>
+
 </Project>

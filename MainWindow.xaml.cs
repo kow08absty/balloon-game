@@ -17,6 +17,7 @@ using System.Runtime.InteropServices;
 using System.Drawing;
 
 using TrackerFrame = Microsoft.Azure.Kinect.BodyTracking.Frame;
+using System.Diagnostics;
 
 namespace BalloonGame {
     /// <summary>
@@ -55,11 +56,11 @@ namespace BalloonGame {
         /// <summary>
         /// 手の大きさ
         /// </summary>
-        const int HAND_SIZE = 40;
+        const int HAND_SIZE = 80;
         /// <summary>
         /// 風船の大きさ
         /// </summary>
-        const int BALLOON_SIZE = 40;
+        const int BALLOON_SIZE = 80;
         /// <summary>
         /// リフレッシュレート [フレーム/秒]
         /// </summary>
@@ -68,7 +69,7 @@ namespace BalloonGame {
         /// <summary>
         /// Body Tracking で検出可能なおおよその解像度
         /// </summary>
-        private static readonly System.Windows.Rect trackingSize = new System.Windows.Rect(-1024, -1024, 1024, 1024);
+        private static readonly System.Windows.Rect trackingSize = new System.Windows.Rect(-1024, -300, 1024, 1366);
         private static readonly System.Windows.Size normalizedTrackingSize = new System.Windows.Size(Math.Abs(trackingSize.Width - trackingSize.X), Math.Abs(trackingSize.Height - trackingSize.Y));
 
         /// <summary>
@@ -76,7 +77,7 @@ namespace BalloonGame {
         /// </summary>
         private System.Windows.Size canvasSize = new System.Windows.Size(1920, 1080);
 
-        private static readonly Hand mouse = new Hand(-HAND_SIZE, -HAND_SIZE, HAND_SIZE);
+        private static readonly Hand mouse = new Hand(-HAND_SIZE, -HAND_SIZE);
         private static readonly List<Hand> hands = new List<Hand>();
         private static readonly List<Balloon> balloons = new List<Balloon>();
 
@@ -85,6 +86,7 @@ namespace BalloonGame {
 
             Closing += Window_Closing;
             SizeChanged += Window_SizeChanged;
+            StateChanged += MainWindow_StateChanged;
             Loaded += Window_Loaded;
             MouseMove += Window_MouseMove;
 
@@ -157,9 +159,12 @@ namespace BalloonGame {
                                 if (_trackingCount != frame.NumberOfBodies) {
                                     _trackingCount = frame.NumberOfBodies;
                                     hands.Clear();
-                                    for (int i = 0; i < _trackingCount << 1; ++i) {
-                                        hands.Add(new Hand(0, 0, HAND_SIZE));
-                                    }
+                                    Dispatcher.Invoke(() => {
+                                        for (int i = 0; i < _trackingCount << 1; ++i)
+                                        {
+                                            hands.Add(new Hand(0, 0));
+                                        }
+                                    });
                                 }
 
                                 for (int i = 0; i < _trackingCount; ++i) {
@@ -211,7 +216,7 @@ namespace BalloonGame {
                         }
 
                         balloon.Update(now - _lastAnimationTime);
-                        if (balloon.Y > canvasSize.Height + balloon.Size) {
+                        if (balloon.Y > canvasSize.Height + balloon.Size.Height) {
                             balloon.Dead = true;
                         }
                     }
@@ -228,7 +233,7 @@ namespace BalloonGame {
 
                         this.DeadCount.Text = String.Format("ボールが落ちた回数: {0}", _deadCount);
 
-                        this.Coordinate.Text = String.Join(", ", hands.Select(hand => String.Format("X: {0:#.###}, Y: {1:#.###}", hand.X, hand.Y)));
+                        //this.Coordinate.Text = String.Join(", ", hands.Select(hand => String.Format("X: {0:#.###}, Y: {1:#.###}", hand.X, hand.Y)));
 
                         var renderTarget = new RenderTargetBitmap((int)canvasSize.Width, (int)canvasSize.Height, 96, 96, PixelFormats.Pbgra32);
                         var visual = new DrawingVisual();
@@ -257,7 +262,9 @@ namespace BalloonGame {
         }
 
         private void SpawnNewBalloon(double x = 400, double y = 0) {
-            balloons.Add(new Balloon(x, y, BALLOON_SIZE));
+            Dispatcher.Invoke(() => {
+                balloons.Add(new Balloon(x, y));
+            });
         }
 
         private void UpdateCanvasSize() {
@@ -283,6 +290,17 @@ namespace BalloonGame {
 
         private void Window_Loaded(object? sender, EventArgs e) {
             UpdateCanvasSize();
+        }
+
+        private void MainWindow_StateChanged(object? sender, EventArgs e)
+        {
+            Task.Run(() => {
+                Thread.Sleep(200);
+                Dispatcher.Invoke(() =>
+                {
+                    UpdateCanvasSize();
+                });
+            });
         }
     }
 }

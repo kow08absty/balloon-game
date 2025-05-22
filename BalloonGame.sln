@@ -2,7 +2,7 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.12.35707.178 d17.12
-MinimumVisualStudioVersion = 10.0.40219.1
+MinimumVisualStudioVersion = 17.12.35707.178 d17.12
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BalloonGame", "BalloonGame.csproj", "{F4E99F15-FCBC-4FFE-A23E-FE60902277FA}"
 EndProject
 Global
