@@ -8,9 +8,141 @@
         Title="MainWindow" Height="450" Width="800"
         >
     <Grid>
-        <Image Name="MainCanvas" Stretch="Uniform" Width="{Binding ActualWidth, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}" Height="{Binding ActualHeight, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}" />
-        <TextBlock Name="MessageText" Text="Waiting for connection to Kinect..." />
-        <TextBlock Name="DeadCount" Text="[dead count]" HorizontalAlignment="Right" />
-        <!--TextBlock Name="Coordinate" Text="[coordinate]" HorizontalAlignment="Right" VerticalAlignment="Bottom" /-->
+        <TextBlock Name="MessageText" Margin="4,2" Text="Waiting for connection to Kinect..." />
+        
+        <Grid Name="SettingsView"> <!-- 設定画面 -->
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="3*"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="12"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="12"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- TODO: ゲームのタイトルはなんかいいかんじに変えてください -->
+            <TextBlock Text="Kinect 風船ぽんぽんゲーム" FontSize="36" Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" />
+
+            <ScrollViewer Grid.Row="1" Grid.Column="1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Row="0" Grid.Column="0"> <!-- 左パネル -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,8"> <!-- 設定1行 -->
+                            <!--TextBlock  // 設定名を表示するTextBlock
+                                Text="{Binding Source={local:EnumDescSource {x:Type local:Settings+BalloonSize}}}"  // Settings.cs の中の enum の名前; 入れ子のクラスはピリオドではなくプラスで指定
+                                Margin="0,0,8,0"  // 詰めすぎると見にくいのでてきとうな間隔をあける
+                                /-->
+                            <TextBlock 
+                                Text="{Binding Source={local:EnumDescSource {x:Type local:Settings+BalloonSize}}}"
+                                Margin="0,0,8,0"
+                                />
+
+                            <!--ComboBox  // 設定を実際に変えるComboBox
+                                Width="120"  // （必要であれば）横幅を指定; なければ自動
+                                ItemsSource="{Binding Source={local:EnumBindingSource {x:Type local:Settings+BalloonSize}}}"  // Settings.cs の中の enum の名前
+                                SelectedValue="{Binding Path=BalloonSize, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"  // Settings.cs の中の SettingsViewModel に格納するプロパティの名前（{ get; set; } って書いてあるアレ）
+                                /-->
+                            <ComboBox
+                                Width="120"
+                                ItemsSource="{Binding Source={local:EnumBindingSource {x:Type local:Settings+BalloonSize}}}"
+                                SelectedValue="{Binding Path=BalloonSize, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
+                                />
+                            
+                            <!--
+                            // NOTE: デザインがうまく表示されないときはビルドしてみよう
+                            // 上メニュー「ビルド」→「ソリューションのビルド」　ショートカットキー = Ctrl + Shift + B
+                            
+                            // NOTE: 設定がそんなに多くないなら、StackPanel のすぐ上にある Grid を StackPanel に置き換えて1列にしてもOK
+                            // <ScrollViewer>
+                            //   <Grid>
+                            //     <Grid.ColumnDefinitions>
+                            //       <ColumnDefinition Width="*"/>
+                            //       <ColumnDefinition Width="*"/>
+                            //     </Grid.ColumnDefinitions>
+                            //     <StackPanel Grid.Row="0" Grid.Column="0"> // 左パネル
+                            //       < ... > // 設定1行
+                            //     </StackPanel>
+                            //       < ... > // 設定1行
+                            //     <StackPanel Grid.Row="0" Grid.Column="1"> // 右パネル
+                            //     </StackPanel>
+                            //   </Grid>
+                            // </ScrollViewer>
+                            //
+                            //     ↓
+                            //
+                            // <ScrollViewer>
+                            //   <StackPanel>
+                            //     < ... > // 設定1行
+                            //   </StackPanel>
+                            // </ScrollViewer>
+                            -->
+                            
+                        </StackPanel>
+                        <ComboBox Width="120"/>
+                        <ComboBox Width="120"/>
+                        <ComboBox Width="120"/>
+                        <ComboBox Width="120"/>
+                        <ComboBox Width="120"/>
+                        <ComboBox Width="120"/>
+                        <ComboBox Width="120"/>
+                        <ComboBox Width="120"/>
+                        <ComboBox Width="120"/>
+                        <ComboBox Width="120"/>
+                        <ComboBox Width="120"/>
+                        <ComboBox Width="120"/>
+                        <ComboBox Width="120"/>
+                        <ComboBox Width="120"/>
+                        <ComboBox Width="120"/>
+                        <ComboBox Width="120"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="0" Grid.Column="1"> <!-- 右パネル -->
+                        <ComboBox Width="120"/>
+                        <ComboBox Width="120"/>
+                        <ComboBox Width="120"/>
+                        <ComboBox Width="120"/>
+                        <ComboBox Width="120"/>
+                        <ComboBox Width="120"/>
+                        <ComboBox Width="120"/>
+                        <ComboBox Width="120"/>
+                        <ComboBox Width="120"/>
+                        <ComboBox Width="120"/>
+                        <ComboBox Width="120"/>
+                        <ComboBox Width="120"/>
+                        <ComboBox Width="120"/>
+                        <ComboBox Width="120"/>
+                        <ComboBox Width="120"/>
+                        <ComboBox Width="120"/>
+                        <ComboBox Width="120"/>
+                    </StackPanel>
+                </Grid>
+            </ScrollViewer>
+            <Button Name="ButtonStart" Content="スタート" Grid.Row="2" Grid.Column="1" Padding="32,12" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="25" />
+        </Grid>
+
+        <Grid Name="InGameView" Visibility="Hidden"> <!-- ゲーム画面 -->
+            <Image Name="MainCanvas" Stretch="Uniform" Width="{Binding ActualWidth, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}" Height="{Binding ActualHeight, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}" />
+            <TextBlock Name="TextDeadCount" Text="[dead count]" HorizontalAlignment="Right" />
+            <Button Name="ButtonPause" Content="⏸️" FontSize="36" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="4,20" Background="Transparent" />
+            <!--TextBlock Name="Coordinate" Text="[coordinate]" HorizontalAlignment="Right" VerticalAlignment="Bottom" /-->
+        </Grid>
+
+        <Grid Name="PauseMenu" Visibility="Hidden"> <!-- 一時停止画面 -->
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <Rectangle Grid.RowSpan="99" Fill="Black" Opacity="0.3" />
+            <TextBlock Grid.Row="0" Text="Pause Menu" FontSize="58" VerticalAlignment="Center" HorizontalAlignment="Center" />
+            <Button Grid.Row="1" Name="ButtonResume" Content="▶️ 続ける" FontSize="25" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="32,12" />
+            <Button Grid.Row="2" Name="ButtonStop" Content="❌️ 終了" FontSize="25" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="32,12" />
+        </Grid>
     </Grid>
 </Window>

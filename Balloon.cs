@@ -64,9 +64,7 @@ namespace BalloonGame {
         }
 
         /// <summary>
-        /// 渡された Hand に対してユークリッド距離で衝突判定してた
-        /// 
-        /// >>> TODO: 衝突判定をちゃんと仕上げる
+        /// 渡された Hand に対して矩形と円の衝突判定
         /// 
         /// https://ftvoid.com/blog/post/300
         /// 
@@ -74,27 +72,29 @@ namespace BalloonGame {
         /// <param name="hand">ターゲット</param>
         /// <returns>衝突したら true</returns>
         public bool IsCollide(Hand hand) {
-            if (this.x > hand.X || this.x < hand.X + hand.Size.Width || this.y > hand.Y - this.Size.Width || this.y < hand.Y + this.Size.Height) {
+            double handX1 = hand.X - hand.Size.Width * 0.5;
+            double handX2 = hand.X + hand.Size.Width * 0.5;
+            double handY1 = hand.Y - hand.Size.Height * 0.5;
+            double handY2 = hand.Y + hand.Size.Height * 0.5;
+            double ballSizeW = this.size.Width / 2;
+            double ballSizeH = this.size.Height / 2;
+            if (this.x > handX1 && this.x < handX2 && this.y > handY1 - ballSizeH && this.y < handY2 + ballSizeH) {
                 return true;
             }
-            if (this.x > hand.X - this.Size.Width || this.x < hand.X + this.Size.Width || this.y > hand.Y || this.y < hand.Y + hand.Size.Height) {
+            if (this.x > handX1 - ballSizeW && this.x < handX2 + ballSizeW && this.y > handY1 && this.y < handY2) {
                 return true;
             }
 
-            if (Math.Pow(hand.X - this.x, 2) + Math.Pow(hand.Y - this.y, 2) < Math.Pow(this.Size.Width, 2))
-            {
+            if (Math.Pow(handX1 - this.x, 2) + Math.Pow(handY1 - this.y, 2) < Math.Pow(ballSizeW, 2)) {
                 return true;
             }
-            if (Math.Pow(hand.X + hand.Size.Width - this.x, 2) + Math.Pow(hand.Y - this.y, 2) < Math.Pow(this.Size.Width, 2))
-            {
+            if (Math.Pow(handX2 - this.x, 2) + Math.Pow(handY1 - this.y, 2) < Math.Pow(ballSizeW, 2)) {
                 return true;
             }
-            if (Math.Pow(hand.X - this.x, 2) + Math.Pow(hand.Y + hand.Size.Height - this.y, 2) < Math.Pow(this.Size.Width, 2))
-            {
+            if (Math.Pow(handX2 - this.x, 2) + Math.Pow(handY2 - this.y, 2) < Math.Pow(ballSizeW, 2)) {
                 return true;
             }
-            if (Math.Pow(hand.X + hand.Size.Width - this.x, 2) + Math.Pow(hand.Y + hand.Size.Height - this.y, 2) < Math.Pow(this.Size.Width, 2))
-            {
+            if (Math.Pow(handX1 - this.x, 2) + Math.Pow(handY2 - this.y, 2) < Math.Pow(ballSizeW, 2)) {
                 return true;
             }
 

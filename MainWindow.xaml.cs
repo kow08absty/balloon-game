@@ -1,4 +1,10 @@
-﻿using System.Buffers;
+﻿using Microsoft.Azure.Kinect.BodyTracking;
+using Microsoft.Azure.Kinect.Sensor;
+using System;
+using System.Buffers;
+using System.Diagnostics;
+using System.Drawing;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -10,14 +16,8 @@ using System.Windows.Media.Imaging;
 using System.Windows.Media.Media3D;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
-using Microsoft.Azure.Kinect.Sensor;
-using Microsoft.Azure.Kinect.BodyTracking;
-using System;
-using System.Runtime.InteropServices;
-using System.Drawing;
-
+using static BalloonGame.Settings;
 using TrackerFrame = Microsoft.Azure.Kinect.BodyTracking.Frame;
-using System.Diagnostics;
 
 namespace BalloonGame {
     /// <summary>
@@ -29,9 +29,14 @@ namespace BalloonGame {
         /// </summary>
         private Device? _kinect;
         /// <summary>
-        /// ループ中なら true
+        /// Kinect 処理のループ中なら true
         /// </summary>
         private bool _loop = true;
+        /// <summary>
+        /// ゲームループ中なら true
+        /// </summary>
+        private bool _isInGame = false;
+        private bool _paused = false;
         /// <summary>
         /// 体のトラッキング用インスタンス
         /// </summary>
@@ -47,7 +52,7 @@ namespace BalloonGame {
         /// <summary>
         /// 最後にアニメーションを実行した時間 [ミリ秒]
         /// </summary>
-        private long _lastAnimationTime = TimeUtils.CurrentTimeMillis();
+        private long _lastAnimationTime;
         /// <summary>
         /// Kinect トラッキングを実際に実行しているタスクを覚えておく
         /// </summary>
@@ -90,7 +95,13 @@ namespace BalloonGame {
             Loaded += Window_Loaded;
             MouseMove += Window_MouseMove;
 
-            StartAnimation();
+            ButtonStart.Click += ButtonStart_Click;
+            ButtonPause.Click += ButtonPause_Click;
+            ButtonResume.Click += ButtonResume_Click;
+            ButtonStop.Click += ButtonStop_Click;
+
+            // ViewModelとDataContextを紐づける
+            DataContext = new SettingsViewModel();
 
             // Kinect 接続用タスク
             Task.Run(() => {
@@ -98,14 +109,55 @@ namespace BalloonGame {
                     InitKinect();
                     _kinectCaptureTask = StartKinectCapture();
                     Dispatcher.Invoke(new Action(() => {
-                        MessageText.Visibility = Visibility.Hidden;
+                        MessageText.Text = "✓ Connected to Kinect";
+                        MessageText.Foreground = Brushes.DarkGreen;
                     }));
                     MouseMove -= Window_MouseMove;
                     mouse.X = -100;
                     mouse.Y = -100;
+                    Thread.Sleep(1000);
+                    Dispatcher.Invoke(new Action(() => {
+                        MessageText.Visibility = Visibility.Hidden;
+                    }));
                 } catch (Exception) {
                 }
             });
+        }
+
+        private void ButtonResume_Click(object sender, RoutedEventArgs e) {
+            if (_paused) {
+                _paused = false;
+                PauseMenu.Visibility = Visibility.Hidden;
+            }
+        }
+
+        private void ButtonStop_Click(object sender, RoutedEventArgs e) {
+            if (_paused) {
+                _isInGame = false;
+                _paused = false;
+                InGameView.Visibility = Visibility.Hidden;
+                PauseMenu.Visibility = Visibility.Hidden;
+                SettingsView.Visibility = Visibility.Visible;
+                _deadCount = 0;
+                balloons.Clear();
+            }
+        }
+
+        private void ButtonPause_Click(object sender, RoutedEventArgs e) {
+            if (!_paused) {
+                _paused = true;
+                PauseMenu.Visibility = Visibility.Visible;
+            }
+        }
+
+        private void ButtonStart_Click(object sender, RoutedEventArgs e) {
+            if (!_isInGame) {
+                SettingsView.Visibility = Visibility.Hidden;
+                InGameView.Visibility = Visibility.Visible;
+                _isInGame = true;
+                _lastAnimationTime = TimeUtils.CurrentTimeMillis();
+                StartAnimation();
+            }
         }
 
         /// <summary>
@@ -146,6 +198,7 @@ namespace BalloonGame {
             return Task.Run(async () => {
                 while (_loop) {
                     if (_kinect == null || _bodyTracker == null) {
+                        Thread.Sleep(66);
                         continue;
                     }
 
@@ -202,59 +255,64 @@ namespace BalloonGame {
             int animationTickMillis = (int)(1000f / ANIMATIOM_REFRESH_RATE);
 
             return Task.Run(() => {
-                while (_loop) {
+                while (_isInGame && _loop) {
                     long now = TimeUtils.CurrentTimeMillis();
 
-                    foreach (var balloon in balloons) {
-                        hands.ForEach(hand => {
-                            if (balloon.IsCollide(hand)) {
+                    if (!_paused) {
+                        foreach (var balloon in balloons) {
+                            hands.ForEach(hand => {
+                                if (balloon.IsCollide(hand)) {
+                                    balloon.NotifyCollide();
+                                }
+                            });
+                            if (balloon.IsCollide(mouse)) {
                                 balloon.NotifyCollide();
                             }
-                        });
-                        if (balloon.IsCollide(mouse)) {
-                            balloon.NotifyCollide();
-                        }
 
-                        balloon.Update(now - _lastAnimationTime);
-                        if (balloon.Y > canvasSize.Height + balloon.Size.Height) {
-                            balloon.Dead = true;
-                        }
-                    }
-                    _deadCount += balloons.RemoveAll(b => b.Dead);
-                    if (balloons.Count == 0) {
-                        SpawnNewBalloon();
-                    }
-
-                    Dispatcher.Invoke(() => {
-                        if (canvasSize.Height == 0 || canvasSize.Width == 0) {
-                            UpdateCanvasSize();
-                            return;
-                        }
-
-                        this.DeadCount.Text = String.Format("ボールが落ちた回数: {0}", _deadCount);
-
-                        //this.Coordinate.Text = String.Join(", ", hands.Select(hand => String.Format("X: {0:#.###}, Y: {1:#.###}", hand.X, hand.Y)));
-
-                        var renderTarget = new RenderTargetBitmap((int)canvasSize.Width, (int)canvasSize.Height, 96, 96, PixelFormats.Pbgra32);
-                        var visual = new DrawingVisual();
-
-                        lock (this) {
-                            using (var context = visual.RenderOpen()) {
-                                foreach (var ball in balloons) {
-                                    ball.Draw(context);
-                                }
-
-                                mouse.Draw(context);
-
-                                foreach (var hand in hands) {
-                                    hand.Draw(context);
-                                }
+                            balloon.Update(now - _lastAnimationTime);
+                            if (balloon.Y > canvasSize.Height + balloon.Size.Height) {
+                                balloon.Dead = true;
                             }
                         }
 
-                        renderTarget.Render(visual);
-                        MainCanvas.Source = renderTarget;
-                    });
+                        _deadCount += balloons.RemoveAll(b => b.Dead);
+
+                        if (balloons.Count == 0) {
+                            SpawnNewBalloon(canvasSize.Width / 2, 0);
+                        }
+
+                        Dispatcher.Invoke(() => {
+                            if (canvasSize.Height == 0 || canvasSize.Width == 0) {
+                                UpdateCanvasSize();
+                                return;
+                            }
+
+                            this.TextDeadCount.Text = String.Format("ボールが落ちた回数: {0}", _deadCount);
+
+                            //this.Coordinate.Text = String.Join(", ", hands.Select(hand => String.Format("X: {0:#.###}, Y: {1:#.###}", hand.X, hand.Y)));
+
+                            var renderTarget = new RenderTargetBitmap((int)canvasSize.Width, (int)canvasSize.Height, 96, 96, PixelFormats.Pbgra32);
+                            var visual = new DrawingVisual();
+
+                            lock (this) {
+                                using (var context = visual.RenderOpen()) {
+                                    foreach (var ball in balloons) {
+                                        ball.Draw(context);
+                                    }
+
+                                    mouse.Draw(context);
+
+                                    foreach (var hand in hands) {
+                                        hand.Draw(context);
+                                    }
+                                }
+                            }
+
+                            renderTarget.Render(visual);
+                            MainCanvas.Source = renderTarget;
+                        });
+                    }
+
                     _lastAnimationTime = now;
                     Thread.Sleep(animationTickMillis);
                 }
@@ -270,10 +328,16 @@ namespace BalloonGame {
         private void UpdateCanvasSize() {
             canvasSize.Width = DesiredSize.Width;
             canvasSize.Height = DesiredSize.Height;
+            balloons.ForEach(balloon => {
+                if (balloon.X + balloon.Size.Width > canvasSize.Width) {
+                    balloon.X = canvasSize.Width - balloon.Size.Width;
+                }
+            });
         }
 
         private void Window_Closing(object? sender, System.ComponentModel.CancelEventArgs e) {
             _loop = false;
+            _isInGame = false;
             // Kinect トラッキングが終わって Dispose されるまで待つ
             _kinectCaptureTask?.Wait();
         }
